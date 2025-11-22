@@ -5,7 +5,7 @@ TABLES
 CREATE TABLE Departments (
 	DeptNo INT PRIMARY KEY,
 	Dept_Name CHAR(20),
-	Main_Office INT,
+	Main_Office CHAR(10),
 	ChairSSN CHAR(9)
 );
 
@@ -65,8 +65,9 @@ CREATE TABLE Co_Investigators (
 
 
 CREATE TABLE Research_Assistants (
-	SSN CHAR(9) PRIMARY KEY,
+	SSN CHAR(9),
 	ProjectNo INT,
+	PRIMARY KEY (SSN, ProjectNo),
 	FOREIGN KEY (ProjectNo) REFERENCES Projects (ProjectNo)
 					ON DELETE RESTRICT
 );
