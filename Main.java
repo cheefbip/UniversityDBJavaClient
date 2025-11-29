@@ -57,7 +57,9 @@ public class Main {
             } else if (input == 4) {
 
             } else if (input == 5) {
-
+               System.out.println("\nEnter professor SSN");
+               String profSSN = nextString("Professor SSN (9 digits): ", 9, true, false);
+               displayFacultyProjects(conn, profSSN);
             } else {
                System.out.println("Enter a valid command!");
             } 
@@ -148,6 +150,99 @@ public class Main {
       }
    } 
 
+   // Displays all projects that the given faculty member works on, searched by SSN
+   public static void displayFacultyProjects(Connection conn, String profSSN) {
+      String profName = "";
+      String query = 
+         "SELECT name\n" +
+         "FROM professors\n" +
+         "WHERE ssn = ?;";
+
+      // Get professor name
+      try (PreparedStatement stmt = conn.prepareStatement(query);) {
+         stmt.setString(1, profSSN);
+
+         ResultSet rs = stmt.executeQuery();
+
+         if (rs.next()) {
+            profName = rs.getString("name");
+         } else {
+            System.out.println("No professor found with SSN: " + profSSN);
+            return;
+         }
+
+      } catch (SQLException e) {
+         e.printStackTrace();
+      }
+      
+      System.out.println("Projects for Professor " + profName + ":");
+
+      // Queries for Co-Investigator and Principal Investigator projects
+      String coQuery = 
+         "SELECT P.projectno, spons_name, start_date, end_date, budget, principal_investigator\n" +
+         "FROM co_investigators C INNER JOIN projects P\n" +
+         "ON C.projectno = P.projectno\n" +
+         "WHERE C.ssn = ?;";
+
+      String piQuery = 
+         "SELECT *\n" +
+         "FROM  projects\n" +
+         "WHERE principal_investigator = ?;";
+
+      // Execute Co-Investigator query
+      try (PreparedStatement stmt = conn.prepareStatement(coQuery);) {
+         stmt.setString(1, profSSN);
+
+         ResultSet rs=stmt.executeQuery();
+
+         // Print all projects that the professor is a Co-Investigator in.
+         if(!rs.next()){
+            System.out.println();
+            System.out.println("\tNo projects found where the professor is a Co-Investigator.");
+         } else{
+            System.out.println("\nProjects where Professor " + profName + " is a Co-Investigator:");
+            do {
+               System.out.println("ID: " + rs.getInt("projectno"));
+               System.out.println("\tSponsor: " + rs.getString("spons_name"));
+               System.out.println("\tStart/End Date: " + rs.getDate("start_date") + " to " + rs.getDate("end_date"));
+               System.out.println("\tBudget: " + rs.getDouble("budget"));
+               String PI = rs.getString("principal_investigator");
+               if (PI != null) {
+                  System.out.println("\tPI SSN: " + PI);
+               }
+            } while (rs.next());
+         }
+      } catch (SQLException e) {
+         e.printStackTrace();
+      }
+
+      // Execute Principal Investigator query
+      try (PreparedStatement stmt = conn.prepareStatement(piQuery);) {
+         stmt.setString(1, profSSN);
+
+         ResultSet rs=stmt.executeQuery();
+
+         // Print all projects that the professor is the principal investigator.
+         if(!rs.next()){
+            System.out.println();
+            System.out.println("\tNo projects found where the professor is the Principal Investigator.");
+         } else {
+            System.out.println("\nProjects where Professor " + profName + " is the Principal Investigator:");
+            do {
+               System.out.println("ID: " + rs.getInt("projectno"));
+               System.out.println("\tSponsor: " + rs.getString("spons_name"));
+               System.out.println("\tStart/End Date: " + rs.getDate("start_date") + " to " + rs.getDate("end_date"));
+               System.out.println("\tBudget: " + rs.getDouble("budget"));
+               String PI = rs.getString("principal_investigator");
+               if (PI != null) {
+                  System.out.println("\tPI SSN: " + PI);
+               }
+            } while (rs.next());
+         }
+      } catch (SQLException e) {
+         e.printStackTrace();
+      }
+   }
 
 
    /*
@@ -208,7 +303,6 @@ public class Main {
             if (limit > 0 && input.length() > limit || isExact && input.length() != limit) {
                throw new Exception();
             }
-            sc.nextLine();
             break;
          } catch (Exception e) {
             if (isExact) {
