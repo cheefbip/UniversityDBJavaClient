@@ -54,9 +54,11 @@ public class Main {
                removeProject(conn,
                   projectNo
                );
-            } else if (input == 4) {
-
-            } else if (input == 5) {
+            } else if (input == 4) { // Display Student info
+                System.out.println("\nEnter student SSN");
+                String studentSSN = nextString("Student SSN (9 digits): ", 9, true, false);
+                displayStudentInfo(conn, studentSSN);
+            } else if (input == 5) { // Display faculty member projects
                System.out.println("\nEnter professor SSN");
                String profSSN = nextString("Professor SSN (9 digits): ", 9, true, false);
                displayFacultyProjects(conn, profSSN);
@@ -149,6 +151,65 @@ public class Main {
          e.printStackTrace();
       }
    } 
+
+   //Display the information of a student, the name of his/her student advisor, and the major department.
+   public static void displayStudentInfo(Connection conn, String studentSSN) {
+      String sql =
+        "SELECT s.ssn AS student_ssn, s.name AS student_name, " + //selecting student info from grad_students
+        "       s.age, s.gender, s.degree_program, " +
+        "       adv.name AS advisor_name, " +
+        "       d.dept_name AS dept_name " +
+        "FROM grad_students s " +
+        "LEFT JOIN grad_students adv ON s.advisor_ssn = adv.ssn " + //left join gradstudents avd to get advisors name
+        "LEFT JOIN departments d ON s.deptno = d.deptno " + //left join department d to get the major department name
+        "WHERE s.ssn = ?"; //filter by student ssn
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            //set SSN parameter in SELECT query
+            stmt.setString(1, studentSSN);
+            
+            //execute SQL and retrieve matching row(s)
+            ResultSet rs = stmt.executeQuery();
+
+            //if no row was returned, student does not exist
+            if(!rs.next()) {
+                System.out.println("No student found with SSN: " + studentSSN);
+                return;
+            }
+
+            //extract student's basic info
+            String ssn = rs.getString("student_ssn");
+            String name = rs.getString("student_name");
+            int age = rs.getInt("age");
+            String gender = rs.getString("gender");
+            String degreeProgram = rs.getString("degree_program");
+
+            //extract advisor name and department (thesee may be null)
+            String advisorName = rs.getString("advisor_name");
+            String deptName = rs.getString("dept_name");
+
+            //display the result to the user
+            System.out.println("Student Information:");
+            System.out.println("\tSSN: " + ssn);
+            System.out.println("\tName: " + name);
+            System.out.println("\tAge: " + age);
+            System.out.println("\tGender: " + gender);
+            System.out.println("\tDegree Program: " + degreeProgram);
+
+            //display advisor -- handle case where there is no advisor is assigned
+            System.out.println("\tAdvisor: " +
+                (advisorName != null ? advisorName : "No advisor assigned"));
+
+            
+            //display department - handle case where department is not assigned
+            System.out.println("\tMajor Department: " +
+                (deptName != null ? deptName : "No department assigned"));
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+   }
 
    // Displays all projects that the given faculty member works on, searched by SSN
    public static void displayFacultyProjects(Connection conn, String profSSN) {
